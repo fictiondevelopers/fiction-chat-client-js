@@ -1,8 +1,13 @@
 import { useEffect, useState, useRef } from 'react';
 import './App.css';
+import './output.css';
 
 function FictionChatClient({
-  authToken
+  authToken,
+  contentContainerClassName,
+  chatServerUrl,
+  chatWsUrl
+
 }) {
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -49,9 +54,13 @@ function FictionChatClient({
       setError('Uh oh, it seems you are not authorized to be here! 🔒');
       setLoading(false);
       return;
+    }else{
+      console.log(chatWsUrl)
+      setError('')
+      
     }
 
-    wsRef.current = new WebSocket(`${process.env.REACT_APP_WSS_URL}?token=${token}`);
+    wsRef.current = new WebSocket(`${chatWsUrl}?token=${token}`);
 
     wsRef.current.onopen = () => {
       console.log('WebSocket Connected');
@@ -98,6 +107,9 @@ function FictionChatClient({
   };
 
   useEffect(() => {
+    console.log("authtoken changed 22", authToken)
+    console.log(chatServerUrl)
+    fetchConversations();
     connectWebSocket();
 
     return () => {
@@ -105,36 +117,41 @@ function FictionChatClient({
         wsRef.current.close();
       }
     };
-  }, []);
+  }, [authToken]);
+
+  const fetchConversations = async () => {
+    try {
+      const token = getToken();
+      if (!token) return;
+
+      console.log("fetching conversations")
+      const response = await fetch(chatServerUrl + '?method=get-conversations', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch conversations');
+      }
+
+      const data = await response.json();
+      // setLoading(false)
+      setError('')
+      setConversations(data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchConversations = async () => {
-      try {
-        const token = getToken();
-        if (!token) return;
+    
 
-        const response = await fetch(process.env.REACT_APP_CHAT_SERVER_URL + '?method=get-conversations', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          method: 'POST',
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch conversations');
-        }
-
-        const data = await response.json();
-        setConversations(data);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchConversations();
+    
   }, []);
 
   useEffect(() => {
@@ -143,7 +160,7 @@ function FictionChatClient({
 
       try {
         const token = getToken();
-        const response = await fetch(process.env.REACT_APP_CHAT_SERVER_URL + '?method=get-messages&conversationId=' + selectedConversation.id, {
+        const response = await fetch(chatServerUrl + '?method=get-messages&conversationId=' + selectedConversation.id, {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
@@ -168,7 +185,7 @@ function FictionChatClient({
   const fetchAvailableUsers = async () => {
     try {
       const token = getToken();
-      const response = await fetch(process.env.REACT_APP_CHAT_SERVER_URL + '?method=get-available-users-to-chat', {
+      const response = await fetch(chatServerUrl + '?method=get-available-users-to-chat', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -208,7 +225,7 @@ function FictionChatClient({
 
     try {
       const token = getToken();
-      const response = await fetch(process.env.REACT_APP_CHAT_SERVER_URL + '?method=send-message', {
+      const response = await fetch(chatServerUrl + '?method=send-message', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -252,17 +269,17 @@ function FictionChatClient({
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen">
-        <div className="text-6xl mb-4">🚫</div>
-        <div className="text-xl text-red-500">{error}</div>
-        <div className="text-8xl mt-4">🦊</div>
+      <div className={`flex flex-col items-center justify-center min-h-screen w-full  ${contentContainerClassName} `}>
+          <div className="text-6xl mb-4">🚫</div>
+          <div className="text-xl text-zinc-500">{error}</div>
+          <div className="text-8xl mt-4">🦊</div>
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen">
-      {/* Left sidebar - 25% width */}
+    <div className={`flex h-full w-full ${contentContainerClassName} ` }>
+      {/* Left sidebar - 25% width */}  
       <div className="w-1/4 border-r border-gray-200 flex flex-col">
         <div className="p-4 border-b">
           <div className="flex justify-between items-center">
@@ -479,7 +496,7 @@ function FictionChatClient({
                 <div
                   key={user.id}
                   onClick={() => handleStartChat(user)}
-                  className="flex items-center space-x-3 p-2 hover:bg-gray-100 rounded-lg cursor-pointer"
+                  className="flex items-center p-2 hover:bg-gray-100 rounded-lg cursor-pointer"
                 >
                   {user.profile_picture ? (
                     <>
@@ -501,7 +518,7 @@ function FictionChatClient({
                       <span className="text-gray-600">{getInitials(user.fullname)}</span>
                     </div>
                   )}
-                  <span>{user.fullname}</span>
+                  <span className='ml-2'>{user.fullname}</span>
                 </div>
               ))}
             </div>
