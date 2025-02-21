@@ -1,5 +1,11 @@
-// Update the export to match the component's export type
-import './src/App.css';
-import FictionChatClient from './src/App.js';
-export { FictionChatClient };
-export { createConversation } from './src/useFictionChat.js';
+import FictionChatClient from "./src/components/FictionChatClient";
+import { createConversation } from "./src/useFictionChat";
+import "./src/styles/index.css";
+
+const Fiction = {
+  FictionChatClient,
+  createConversation,
+};
+
+export { FictionChatClient, createConversation };
+export default Fiction;

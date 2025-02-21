@@ -1,0 +1,10 @@
+{
+  "presets": ["@babel/preset-env", "@babel/preset-react"],
+  "ignore": [
+    "**/*.test.js",
+    "**/setupTests.js",
+    "**/reportWebVitals.js",
+    "**/*.css",
+    "**/*.svg"
+  ]
+}
